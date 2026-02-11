@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Valentine's Day Crossword</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@300;400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --cell: 28px;
+    --bg: #1a0a2e;
+    --bg2: #241440;
+    --pink: #ff6b8a;
+    --pink-light: #ffe0e8;
+    --pink-dark: #d4365c;
+    --gold: #ffd700;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'Inter', sans-serif;
+    color: #e8ddf5;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Floating hearts background ── */
+  .hearts-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .fh {
+    position: absolute; bottom: -40px;
+    color: rgba(255,107,138,0.08); font-size: 20px;
+    animation: fhUp linear infinite;
+  }
+  @keyframes fhUp {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 0.5; }
+    100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
+  }
+
+  /* ── Header ── */
+  header {
+    position: relative; z-index: 1;
+    text-align: center; padding: 30px 20px 10px;
+  }
+  header h1 {
+    font-family: 'Dancing Script', cursive;
+    font-size: 2.6em;
+    background: linear-gradient(135deg, var(--pink), #ff9eb5);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p {
+    color: rgba(255,200,215,0.5); font-size: 0.9em; margin-top: 4px; font-weight: 300;
+  }
+
+  /* ── Active clue bar ── */
+  .active-clue-bar {
+    position: relative; z-index: 1;
+    background: var(--bg2); border-bottom: 1px solid rgba(255,107,138,0.15);
+    padding: 10px 20px; text-align: center; min-height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95em; font-weight: 400; color: var(--pink-light);
+  }
+  .active-clue-bar .num {
+    font-weight: 600; color: var(--pink); margin-right: 8px;
+  }
+
+  /* ── Main layout ── */
+  .main {
+    position: relative; z-index: 1;
+    display: flex; gap: 30px;
+    max-width: 1200px; margin: 0 auto; padding: 20px;
+    align-items: flex-start;
+  }
+
+  /* ── Grid ── */
+  .grid-wrap {
+    overflow: auto; -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(24, var(--cell));
+    grid-template-rows: repeat(26, var(--cell));
+    gap: 1px;
+    background: #000;
+    border: 2px solid rgba(255,107,138,0.3);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .cell {
+    width: var(--cell); height: var(--cell);
+    position: relative;
+    background: var(--bg);
+  }
+  .cell.active-cell {
+    background: #2a1a3e;
+  }
+  .cell.has-letter {
+    background: #fff;
+    cursor: pointer;
+  }
+  .cell.has-letter.highlight {
+    background: var(--pink-light);
+  }
+  .cell.has-letter.selected {
+    background: var(--pink) !important;
+  }
+  .cell.has-letter.selected .cell-input { color: #fff; }
+  .cell.has-letter.selected .cell-num { color: rgba(255,255,255,0.7); }
+
+  .cell-num {
+    position: absolute; top: 1px; left: 2px;
+    font-size: 8px; font-weight: 600; color: #888;
+    line-height: 1; pointer-events: none; z-index: 2;
+  }
+  .cell-input {
+    width: 100%; height: 100%;
+    border: none; outline: none; background: transparent;
+    text-align: center; font-size: 14px; font-weight: 600;
+    color: #333; text-transform: uppercase;
+    caret-color: transparent; cursor: pointer;
+    padding: 0;
+    -webkit-user-select: none; user-select: none;
+  }
+  .cell-input:focus { outline: none; }
+
+  /* Check feedback */
+  .cell.correct .cell-input { color: #2a9d4a; }
+  .cell.wrong { animation: shake 0.4s ease; }
+  .cell.wrong .cell-input { color: #e53e3e; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+
+  /* ── Clues panel ── */
+  .clues {
+    flex: 1; min-width: 280px;
+    max-height: calc(26 * var(--cell) + 26px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,107,138,0.3) transparent;
+  }
+  .clues::-webkit-scrollbar { width: 5px; }
+  .clues::-webkit-scrollbar-thumb { background: rgba(255,107,138,0.3); border-radius: 3px; }
+
+  .clue-section h2 {
+    font-size: 0.85em; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--pink); margin-bottom: 10px; font-weight: 600;
+    padding-bottom: 6px; border-bottom: 1px solid rgba(255,107,138,0.2);
+  }
+  .clue-section { margin-bottom: 24px; }
+
+  .clue-item {
+    padding: 6px 10px; border-radius: 6px;
+    font-size: 0.88em; line-height: 1.5;
+    cursor: pointer; transition: background 0.15s;
+    margin-bottom: 2px; font-weight: 300;
+  }
+  .clue-item:hover { background: rgba(255,107,138,0.08); }
+  .clue-item.active {
+    background: rgba(255,107,138,0.15);
+    color: #fff; font-weight: 400;
+  }
+  .clue-item .cnum {
+    font-weight: 600; color: var(--pink); margin-right: 6px; display: inline-block; min-width: 22px;
+  }
+  .clue-item.starred::after {
+    content: " \2764"; color: var(--pink); font-size: 0.8em;
+  }
+
+  /* ── Buttons ── */
+  .buttons {
+    position: relative; z-index: 1;
+    display: flex; gap: 12px; justify-content: center;
+    padding: 16px 20px 30px; flex-wrap: wrap;
+  }
+  .btn {
+    padding: 10px 24px;
+    border: 1px solid rgba(255,107,138,0.4);
+    background: transparent; color: var(--pink-light);
+    border-radius: 50px; font-family: 'Inter', sans-serif;
+    font-size: 0.85em; font-weight: 500; cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.3px;
+  }
+  .btn:hover {
+    background: rgba(255,107,138,0.15);
+    border-color: var(--pink);
+  }
+  .btn.primary {
+    background: linear-gradient(135deg, var(--pink), var(--pink-dark));
+    border: none; color: #fff;
+    box-shadow: 0 4px 20px rgba(255,107,138,0.3);
+  }
+  .btn.primary:hover {
+    box-shadow: 0 6px 30px rgba(255,107,138,0.5);
+    transform: translateY(-1px);
+  }
+
+  /* ── Celebration overlay ── */
+  .celebration {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(26,10,46,0.95);
+    align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+  }
+  .celebration.show { display: flex; animation: fadeIn 0.6s ease; }
+  .celebration h2 {
+    font-family: 'Dancing Script', cursive; font-size: 3.5em;
+    background: linear-gradient(135deg, var(--pink), #ff9eb5, var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 16px;
+  }
+  .celebration p {
+    font-size: 1.1em; color: var(--pink-light); font-weight: 300;
+    max-width: 400px; line-height: 1.8;
+  }
+  .celebration .big-heart {
+    font-size: 80px; margin-bottom: 20px;
+    animation: heartBeat 1s ease infinite;
+  }
+  @keyframes heartBeat {
+    0%   { transform: scale(1); }
+    15%  { transform: scale(1.2); }
+    30%  { transform: scale(1); }
+    45%  { transform: scale(1.15); }
+    60%  { transform: scale(1); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+  .celeb-hearts {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+  }
+  .celeb-heart {
+    position: absolute; font-size: 30px;
+    animation: celebFloat 3s ease forwards;
+  }
+  @keyframes celebFloat {
+    0%   { opacity: 1; transform: translateY(0) scale(1) rotate(0); }
+    100% { opacity: 0; transform: translateY(-300px) scale(0.3) rotate(180deg); }
+  }
+
+  /* ── Stage Management ── */
+  .stage { display: none; }
+  .stage.active { display: block; }
+
+  /* ── Transition Screen ── */
+  #stageTransition {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(26,10,46,0.97);
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+  }
+  #stageTransition.active { display: flex; }
+  #stageTransition h2 {
+    font-family: 'Dancing Script', cursive; font-size: 3em;
+    background: linear-gradient(135deg, var(--pink), #ff9eb5, var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 12px;
+  }
+  #stageTransition p {
+    color: var(--pink-light); font-weight: 300; font-size: 1.1em;
+    max-width: 450px; line-height: 1.7; margin-bottom: 30px;
+  }
+  #stageTransition .btn {
+    font-size: 1.1em; padding: 14px 40px;
+  }
+
+  /* ── Stage 2 Transition Screen ── */
+  #stage2Transition {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(26,10,46,0.97);
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+  }
+  #stage2Transition.active { display: flex; }
+  #stage2Transition h2 {
+    font-family: 'Dancing Script', cursive; font-size: 3em;
+    background: linear-gradient(135deg, var(--pink), #ff9eb5, var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 12px;
+  }
+  #stage2Transition p {
+    color: var(--pink-light); font-weight: 300; font-size: 1.1em;
+    max-width: 450px; line-height: 1.7; margin-bottom: 30px;
+  }
+  #stage2Transition .btn {
+    font-size: 1.1em; padding: 14px 40px;
+  }
+
+  /* ── Stage 3: Cooking Game ── */
+  #stage3 { position: relative; width: 100%; height: 100vh; background: #1a0a2e; }
+  #stage3.active { display: block; }
+  #cookingCanvas {
+    display: block; width: 100%; height: 100%;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+  }
+
+  /* ── Stage 3 Transition Screen ── */
+  #stage3Transition {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(26,10,46,0.97);
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+  }
+  #stage3Transition.active { display: flex; }
+  #stage3Transition h2 {
+    font-family: 'Dancing Script', cursive; font-size: 3em;
+    background: linear-gradient(135deg, var(--pink), #ff9eb5, var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 12px;
+  }
+  #stage3Transition p {
+    color: var(--pink-light); font-weight: 300; font-size: 1.1em;
+    max-width: 450px; line-height: 1.7; margin-bottom: 30px;
+  }
+  #stage3Transition .btn {
+    font-size: 1.1em; padding: 14px 40px;
+  }
+
+  /* ── Celebration photo ── */
+  .celeb-photo {
+    max-width: 340px; width: 80%;
+    border-radius: 16px; margin-bottom: 24px;
+    box-shadow: 0 8px 40px rgba(255,107,138,0.3);
+  }
+
+  /* ── Stage 2: Raycaster ── */
+  #stage2 { position: relative; width: 100%; height: 100vh; background: #000; }
+  #stage2.active { display: block; }
+  #gameCanvas {
+    display: block; width: 100%; height: 100%;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    cursor: crosshair;
+  }
+  .game-hud {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; z-index: 10;
+  }
+  .hud-progress {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    width: 260px; text-align: center;
+  }
+  .hud-progress-label {
+    font-size: 0.8em; color: var(--pink-light); margin-bottom: 4px;
+    font-weight: 500; text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  }
+  .hud-progress-bar {
+    width: 100%; height: 14px; background: rgba(0,0,0,0.5);
+    border-radius: 7px; overflow: hidden; border: 1px solid rgba(255,107,138,0.4);
+  }
+  .hud-progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--pink), var(--gold));
+    border-radius: 7px; transition: width 0.3s ease;
+  }
+  .hud-minimap {
+    position: absolute; top: 12px; right: 12px;
+    border: 2px solid rgba(255,107,138,0.5);
+    border-radius: 4px; opacity: 0.85;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.6);
+  }
+  .hud-message {
+    position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 1.6em; font-weight: 600; color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+    opacity: 0; transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  .hud-message.show { opacity: 1; }
+  .hud-instructions {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    font-size: 0.75em; color: rgba(255,200,215,0.5);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  }
+  .hud-screen-fx {
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .hud-screen-fx.flash { opacity: 1; }
+
+  /* ── Skip buttons (shift to show) ── */
+  .skip-btn { display: none !important; }
+  body.show-skip .skip-btn { display: inline-block !important; }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .main { flex-direction: column; align-items: center; padding: 10px; gap: 16px; }
+    .clues { max-height: 50vh; width: 100%; max-width: 600px; }
+    header { padding: 20px 16px 6px; }
+    header h1 { font-size: 2em; }
+  }
+  @media (max-width: 500px) {
+    :root { --cell: 24px; }
+    .cell-input { font-size: 12px; }
+    .cell-num { font-size: 7px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hearts-bg" id="heartsBg"></div>
+
+<div id="stage1" class="stage active">
+<header>
+  <h1>Valentine's Day Crossword</h1>
+  <p>How well do you know us?</p>
+  <button class="btn skip-btn" onclick="completeStage1()" style="position:absolute;top:10px;right:10px;font-size:0.7em;opacity:0.4;">Skip to Stage 2</button>
+  <button class="btn skip-btn" onclick="currentStage=3;document.getElementById('stage1').classList.remove('active');document.getElementById('stage3').classList.add('active');initCookingGame();" style="position:absolute;top:10px;right:140px;font-size:0.7em;opacity:0.4;">Skip to Stage 3</button>
+</header>
+
+<div class="active-clue-bar" id="activeClueBar">
+  <span style="color: rgba(255,200,215,0.4)">Click a cell or clue to begin</span>
+</div>
+
+<div class="main">
+  <div class="grid-wrap">
+    <div class="grid" id="grid"></div>
+  </div>
+  <div class="clues" id="cluesPanel">
+    <div class="clue-section">
+      <h2>Across</h2>
+      <div id="acrossClues"></div>
+    </div>
+    <div class="clue-section">
+      <h2>Down</h2>
+      <div id="downClues"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="stageTransition">
+  <h2>Stage 1 Complete!</h2>
+  <p>You know your stuff! But can you help our Roomba clean the house before Sprite gets home?</p>
+  <button class="btn primary" onclick="startStage2()">Start Stage 2: Roomba Racer</button>
+</div>
+
+<div id="stage2" class="stage">
+  <canvas id="gameCanvas" width="640" height="480"></canvas>
+  <div class="game-hud">
+    <div class="hud-progress">
+      <div class="hud-progress-label">Floor Cleaned: <span id="cleanPercent">0</span>%</div>
+      <div class="hud-progress-bar"><div class="hud-progress-fill" id="progressFill"></div></div>
+    </div>
+    <canvas id="minimapCanvas" class="hud-minimap" width="128" height="128"></canvas>
+    <div class="hud-message" id="hudMessage"></div>
+    <div class="hud-instructions">Clean up Summer's hair! WASD to move &bull; Mouse to look</div>
+    <div class="hud-screen-fx" id="screenFx"></div>
+    <button class="skip-btn" onclick="completeStage2()" style="position:absolute;bottom:40px;right:12px;pointer-events:auto;font-size:0.65em;opacity:0.3;background:none;border:1px solid rgba(255,107,138,0.3);color:rgba(255,200,215,0.4);padding:4px 10px;border-radius:20px;cursor:pointer;">Skip</button>
+  </div>
+</div>
+
+
+<div id="stage2Transition">
+  <h2>Stage 2 Complete!</h2>
+  <p>The house is spotless! But dinner isn't going to cook itself...</p>
+  <button class="btn primary" onclick="startStage3()">Stage 3: What's For Dinner?</button>
+</div>
+
+<div id="stage3" class="stage">
+  <canvas id="cookingCanvas" width="640" height="520"></canvas>
+  <div class="game-hud">
+    <div class="hud-message" id="cookingMessage"></div>
+    <div class="hud-instructions">A/D or Arrow Keys to move the pan &bull; Catch the right ingredients!</div>
+    <div class="hud-screen-fx" id="cookingFx"></div>
+    <button class="skip-btn" onclick="completeStage3()" style="position:absolute;bottom:40px;right:12px;pointer-events:auto;font-size:0.65em;opacity:0.3;background:none;border:1px solid rgba(255,107,138,0.3);color:rgba(255,200,215,0.4);padding:4px 10px;border-radius:20px;cursor:pointer;">Skip</button>
+  </div>
+</div>
+
+<div id="stage3Transition">
+  <h2>Dinner is Served!</h2>
+  <p>4 meals. 4 different orders. Every single night.<br>Now you know what Sprite does for this family.</p>
+  <button class="btn primary" onclick="startCelebration()">Continue</button>
+</div>
+
+<div class="celebration" id="celebration">
+  <div class="celeb-hearts" id="celebHearts"></div>
+  <img src="family.png" class="celeb-photo" alt="Our family">
+  <h2>Happy Valentine's Day!</h2>
+  <p>You know our story by heart, kept the house spotless, and even cooked dinner.<br>I love you more than words (or crosswords, Roombas, or frying pans) could ever express.</p>
+  <p style="margin-top: 30px; font-size: 0.85em; color: rgba(255,200,215,0.4);">Forever & always yours &hearts;</p>
+</div>
+
+<!-- Hidden input for mobile keyboard (crossword) -->
+<input type="text" id="hiddenInput" autocomplete="off" autocorrect="off" autocapitalize="characters"
+  spellcheck="false" style="position:fixed;top:-100px;left:-100px;opacity:0;width:1px;height:1px;">
+
+<script>
+// ── Crossword Data ──────────────────────────────────────
+const ROWS = 26, COLS = 24;
+
+const GRID = {"0,10":"F","1,10":"O","2,10":"O","3,0":"H","3,1":"E","3,2":"A","3,3":"R","3,4":"T","3,5":"S","3,6":"H","3,7":"A","3,8":"P","3,9":"E","3,10":"D","3,11":"N","3,12":"O","3,13":"T","3,14":"E","3,15":"S","3,19":"W","2,0":"W","4,0":"A","5,0":"T","6,0":"S","7,0":"F","8,0":"O","9,0":"R","10,0":"D","11,0":"I","12,0":"N","13,0":"N","14,0":"E","15,0":"R","4,6":"O","5,6":"L","6,6":"L","7,6":"O","8,6":"W","9,6":"K","10,6":"N","11,6":"I","12,6":"G","13,6":"H","14,6":"T","4,11":"O","5,11":"A","6,11":"H","4,4":"R","5,4":"U","6,4":"S","7,4":"T","8,4":"T","9,4":"H","10,4":"E","11,4":"P","12,4":"R","13,4":"O","14,4":"C","15,4":"E","16,4":"S","17,4":"S","11,7":"M","11,8":"Y","11,9":"O","11,10":"U","11,11":"R","11,12":"S","10,9":"F","12,9":"R","13,9":"R","14,9":"E","15,9":"S","16,9":"T","17,9":"G","18,9":"U","19,9":"M","20,9":"P","4,15":"P","5,15":"R","6,15":"I","7,15":"T","8,15":"E","6,12":"U","6,13":"G","2,2":"H","4,2":"G","5,2":"E","6,2":"N","7,2":"D","8,2":"A","9,2":"Z","10,2":"S","12,11":"O","13,11":"C","14,11":"K","15,11":"O","4,8":"A","5,8":"P","6,8":"A","7,8":"Y","8,8":"A","19,6":"F","19,7":"A","19,8":"R","19,10":"E","19,11":"R","19,12":"C","19,13":"I","19,14":"S","19,15":"C","19,16":"O","4,16":"H","4,17":"U","4,18":"K","4,19":"E","4,20":"T","8,14":"N","8,16":"W","8,17":"G","8,18":"I","8,19":"N","8,20":"Z","8,21":"A","18,16":"T","20,16":"I","21,16":"L","22,16":"E","23,16":"T","9,17":"R","10,17":"E","11,17":"E","12,17":"N","13,17":"T","14,17":"E","15,17":"A","18,7":"H","20,7":"P","21,7":"P","22,7":"Y","23,7":"G","24,7":"U","25,7":"Y","14,8":"P","14,10":"C","14,12":"Y","18,17":"O","18,18":"M","18,19":"O","18,20":"R","18,21":"R","18,22":"O","18,23":"W","7,21":"P","9,21":"D","10,21":"S","11,21":"E","12,21":"E","13,21":"E","14,21":"W","1,9":"K","1,11":"H","1,12":"L","1,13":"I","1,14":"P","1,15":"E","5,19":"E","6,19":"M","7,19":"A"};
+
+const NUMBERING = {"0,10":1,"1,9":2,"2,0":3,"2,2":4,"3,0":5,"3,4":6,"3,6":7,"3,8":8,"3,11":9,"3,15":10,"3,19":11,"4,15":12,"6,11":13,"7,21":14,"8,14":15,"8,17":16,"10,9":17,"11,6":18,"11,11":19,"14,8":20,"18,7":21,"18,16":22,"19,6":23};
+
+const ACROSS = [
+  {n:2, clue:"Our favorite vacation destination", word:"KOHLIPE", row:1, col:9, starred:false},
+  {n:5, clue:"What did Todd put in Sprite's pockets on their second date", word:"HEARTSHAPEDNOTES", row:3, col:0, starred:true},
+  {n:12, clue:"Where we honeymooned", word:"PHUKET", row:4, col:15, starred:false},
+  {n:13, clue:"Weird thing I gave you when we first met", word:"HUG", row:6, col:11, starred:false},
+  {n:15, clue:"Where Todd proposed", word:"NEWGINZA", row:8, col:14, starred:false},
+  {n:18, clue:"Our wedding song", word:"IMYOURS", row:11, col:6, starred:false},
+  {n:20, clue:"Who poops in the house the most", word:"PECKY", row:14, col:8, starred:false},
+  {n:22, clue:"When will Quinn sleep in your parent's room", word:"TOMORROW", row:18, col:16, starred:false},
+  {n:23, clue:"How Quinn pronounced San Francisco", word:"FARMERCISCO", row:19, col:6, starred:false},
+];
+
+const DOWN = [
+  {n:1, clue:"Summer's favorite thing", word:"FOOD", row:0, col:10, starred:false},
+  {n:3, clue:"Most common household question", word:"WHATSFORDINNER", row:2, col:0, starred:true},
+  {n:4, clue:"Quinn's ice cream song", word:"HAGENDAZS", row:2, col:2, starred:false},
+  {n:6, clue:"Quinn's motto for Valentine's Day", word:"TRUSTTHEPROCESS", row:3, col:4, starred:false},
+  {n:7, clue:"Sprite's favorite video game", word:"HOLLOWKNIGHT", row:3, col:6, starred:true},
+  {n:8, clue:"Sprite's favorite salad", word:"PAPAYA", row:3, col:8, starred:false},
+  {n:9, clue:"Audrey's way of saying no", word:"NOAH", row:3, col:11, starred:false},
+  {n:10, clue:"Who's better at pool", word:"SPRITE", row:3, col:15, starred:false},
+  {n:11, clue:"Victor's nickname", word:"WEEMAN", row:3, col:19, starred:false},
+  {n:14, clue:"Audrey's favorite Thai dish", word:"PADSEEEW", row:7, col:21, starred:false},
+  {n:16, clue:"Our favorite ice cream flavor", word:"GREENTEA", row:8, col:17, starred:false},
+  {n:17, clue:"Sprite's favorite movie", word:"FORRESTGUMP", row:10, col:9, starred:false},
+  {n:19, clue:"Todd's Thai tailor", word:"ROCKO", row:11, col:11, starred:false},
+  {n:21, clue:"Our favorite Children's Day participant", word:"HAPPYGUY", row:18, col:7, starred:false},
+  {n:22, clue:"Quinn's custom halloween costume", word:"TOILET", row:18, col:16, starred:false},
+];
+
+const ALL_WORDS = [...ACROSS.map(w => ({...w, dir:'H'})), ...DOWN.map(w => ({...w, dir:'V'}))];
+
+// ── Stage Management ────────────────────────────────────
+let currentStage = 1;
+
+// ── State ───────────────────────────────────────────────
+let selectedCell = null; // {r, c}
+let direction = 'H'; // current direction preference
+let activeWord = null; // word object
+
+// ── Build Grid ──────────────────────────────────────────
+const gridEl = document.getElementById('grid');
+const cells = {}; // "r,c" -> DOM element
+
+for (let r = 0; r < ROWS; r++) {
+  for (let c = 0; c < COLS; c++) {
+    const key = `${r},${c}`;
+    const div = document.createElement('div');
+    div.className = 'cell';
+    div.dataset.r = r;
+    div.dataset.c = c;
+
+    if (GRID[key]) {
+      div.classList.add('has-letter');
+      const num = NUMBERING[key];
+      if (num !== undefined) {
+        const numSpan = document.createElement('span');
+        numSpan.className = 'cell-num';
+        numSpan.textContent = num;
+        div.appendChild(numSpan);
+      }
+      const inp = document.createElement('input');
+      inp.className = 'cell-input';
+      inp.type = 'text';
+      inp.maxLength = 1;
+      inp.dataset.r = r;
+      inp.dataset.c = c;
+      inp.setAttribute('readonly', 'readonly');
+      div.appendChild(inp);
+      div.addEventListener('click', () => onCellClick(r, c));
+    }
+    gridEl.appendChild(div);
+    cells[key] = div;
+  }
+}
+
+// ── Build Clues ─────────────────────────────────────────
+function buildClues(list, container) {
+  list.forEach(w => {
+    const div = document.createElement('div');
+    div.className = 'clue-item' + (w.starred ? ' starred' : '');
+    div.innerHTML = `<span class="cnum">${w.n}.</span>${w.clue}`;
+    div.dataset.n = w.n;
+    div.dataset.dir = container === document.getElementById('acrossClues') ? 'H' : 'V';
+    div.addEventListener('click', () => {
+      const d = div.dataset.dir;
+      selectWord(findWord(w.n, d));
+    });
+    container.appendChild(div);
+  });
+}
+buildClues(ACROSS, document.getElementById('acrossClues'));
+buildClues(DOWN, document.getElementById('downClues'));
+
+// ── Word Lookup ─────────────────────────────────────────
+function findWord(n, dir) {
+  return ALL_WORDS.find(w => w.n === n && w.dir === dir);
+}
+
+function wordsAtCell(r, c) {
+  return ALL_WORDS.filter(w => {
+    if (w.dir === 'H') return r === w.row && c >= w.col && c < w.col + w.word.length;
+    else return c === w.col && r >= w.row && r < w.row + w.word.length;
+  });
+}
+
+function wordCells(w) {
+  const result = [];
+  for (let i = 0; i < w.word.length; i++) {
+    if (w.dir === 'H') result.push({r: w.row, c: w.col + i});
+    else result.push({r: w.row + i, c: w.col});
+  }
+  return result;
+}
+
+// ── Selection ───────────────────────────────────────────
+function clearHighlights() {
+  document.querySelectorAll('.cell.highlight, .cell.selected').forEach(el => {
+    el.classList.remove('highlight', 'selected');
+  });
+  document.querySelectorAll('.clue-item.active').forEach(el => el.classList.remove('active'));
+}
+
+function selectWord(w) {
+  if (!w) return;
+  clearHighlights();
+  activeWord = w;
+  direction = w.dir;
+  const wc = wordCells(w);
+  wc.forEach(({r, c}) => {
+    cells[`${r},${c}`].classList.add('highlight');
+  });
+  // Select first empty cell, or first cell
+  let target = wc.find(({r, c}) => !getInput(r, c).value);
+  if (!target) target = wc[0];
+  selectedCell = target;
+  cells[`${target.r},${target.c}`].classList.add('selected');
+
+  // Highlight clue
+  const clueEl = document.querySelector(`.clue-item[data-n="${w.n}"][data-dir="${w.dir}"]`);
+  if (clueEl) {
+    clueEl.classList.add('active');
+    clueEl.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+  }
+
+  // Update active clue bar
+  document.getElementById('activeClueBar').innerHTML =
+    `<span class="num">${w.n}${w.dir === 'H' ? 'A' : 'D'}.</span> ${w.clue}`;
+
+  focusHidden();
+}
+
+function onCellClick(r, c) {
+  const wasSelected = selectedCell && selectedCell.r === r && selectedCell.c === c;
+  const available = wordsAtCell(r, c);
+
+  if (wasSelected && available.length > 1) {
+    // Toggle direction
+    direction = direction === 'H' ? 'V' : 'H';
+  }
+
+  // Pick word matching current direction, fallback to other
+  let w = available.find(w => w.dir === direction) || available[0];
+  if (!w) return;
+
+  clearHighlights();
+  activeWord = w;
+  direction = w.dir;
+
+  const wc = wordCells(w);
+  wc.forEach(({r: wr, c: wc2}) => {
+    cells[`${wr},${wc2}`].classList.add('highlight');
+  });
+  selectedCell = {r, c};
+  cells[`${r},${c}`].classList.add('selected');
+
+  const clueEl = document.querySelector(`.clue-item[data-n="${w.n}"][data-dir="${w.dir}"]`);
+  if (clueEl) {
+    clueEl.classList.add('active');
+    clueEl.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+  }
+  document.getElementById('activeClueBar').innerHTML =
+    `<span class="num">${w.n}${w.dir === 'H' ? 'A' : 'D'}.</span> ${w.clue}`;
+
+  focusHidden();
+}
+
+// ── Input Handling ──────────────────────────────────────
+function getInput(r, c) {
+  const cell = cells[`${r},${c}`];
+  return cell ? cell.querySelector('.cell-input') : null;
+}
+
+function focusHidden() {
+  const hi = document.getElementById('hiddenInput');
+  hi.value = '';
+  hi.focus();
+}
+
+document.getElementById('hiddenInput').addEventListener('input', (e) => {
+  if (currentStage !== 1) return;
+  const val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+  e.target.value = '';
+  if (!selectedCell || !val) return;
+  const ch = val[val.length - 1];
+  typeLetter(ch);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (currentStage !== 1) return;
+  if (!selectedCell) return;
+
+  const {r, c} = selectedCell;
+
+  if (e.key === 'Backspace') {
+    e.preventDefault();
+    const inp = getInput(r, c);
+    if (inp && inp.value) {
+      inp.value = '';
+      inp.classList.remove('correct-letter');
+    } else {
+      movePrev();
+      const {r: nr, c: nc} = selectedCell;
+      const ninp = getInput(nr, nc);
+      if (ninp) { ninp.value = ''; ninp.classList.remove('correct-letter'); }
+    }
+    clearCheck();
+    return;
+  }
+
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    moveToNextWord(e.shiftKey);
+    return;
+  }
+
+  if (e.key === 'ArrowRight') { e.preventDefault(); moveDir(0, 1); return; }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); moveDir(0, -1); return; }
+  if (e.key === 'ArrowDown')  { e.preventDefault(); moveDir(1, 0); return; }
+  if (e.key === 'ArrowUp')    { e.preventDefault(); moveDir(-1, 0); return; }
+
+  if (/^[a-zA-Z]$/.test(e.key)) {
+    e.preventDefault();
+    typeLetter(e.key.toUpperCase());
+  }
+});
+
+function typeLetter(ch) {
+  if (!selectedCell) return;
+  const inp = getInput(selectedCell.r, selectedCell.c);
+  if (!inp) return;
+  inp.value = ch;
+  clearCheck();
+  moveNext();
+  checkCompletion();
+}
+
+function moveNext() {
+  if (!activeWord || !selectedCell) return;
+  const wc = wordCells(activeWord);
+  const idx = wc.findIndex(p => p.r === selectedCell.r && p.c === selectedCell.c);
+  if (idx < wc.length - 1) {
+    selectCellInWord(wc[idx + 1].r, wc[idx + 1].c);
+  }
+}
+
+function movePrev() {
+  if (!activeWord || !selectedCell) return;
+  const wc = wordCells(activeWord);
+  const idx = wc.findIndex(p => p.r === selectedCell.r && p.c === selectedCell.c);
+  if (idx > 0) {
+    selectCellInWord(wc[idx - 1].r, wc[idx - 1].c);
+  }
+}
+
+function selectCellInWord(r, c) {
+  cells[`${selectedCell.r},${selectedCell.c}`].classList.remove('selected');
+  selectedCell = {r, c};
+  cells[`${r},${c}`].classList.add('selected');
+  focusHidden();
+}
+
+function moveDir(dr, dc) {
+  if (!selectedCell) return;
+  let nr = selectedCell.r + dr, nc = selectedCell.c + dc;
+  while (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+    if (GRID[`${nr},${nc}`]) {
+      onCellClick(nr, nc);
+      return;
+    }
+    nr += dr; nc += dc;
+  }
+}
+
+function moveToNextWord(backward) {
+  if (!activeWord) return;
+  const list = activeWord.dir === 'H' ? ACROSS : DOWN;
+  const idx = list.findIndex(w => w.n === activeWord.n);
+  let next;
+  if (backward) {
+    next = idx > 0 ? list[idx - 1] : DOWN[DOWN.length - 1];
+    if (idx === 0 && activeWord.dir === 'H') next = DOWN[DOWN.length - 1];
+    else if (idx === 0) next = ACROSS[ACROSS.length - 1];
+    else next = list[idx - 1];
+  } else {
+    if (idx < list.length - 1) next = list[idx + 1];
+    else if (activeWord.dir === 'H') next = DOWN[0];
+    else next = ACROSS[0];
+  }
+  const dir = ACROSS.includes(next) ? 'H' : 'V';
+  selectWord(findWord(next.n, dir));
+}
+
+// ── Check / Reveal ──────────────────────────────────────
+function clearCheck() {
+  document.querySelectorAll('.cell.correct, .cell.wrong').forEach(el => {
+    el.classList.remove('correct', 'wrong');
+  });
+}
+
+function checkPuzzle() {
+  clearCheck();
+  let allCorrect = true;
+  let anyFilled = false;
+  for (const [key, letter] of Object.entries(GRID)) {
+    const [r, c] = key.split(',').map(Number);
+    const inp = getInput(r, c);
+    if (!inp || !inp.value) { allCorrect = false; continue; }
+    anyFilled = true;
+    const cell = cells[key];
+    if (inp.value.toUpperCase() === letter) {
+      cell.classList.add('correct');
+    } else {
+      cell.classList.add('wrong');
+      allCorrect = false;
+    }
+  }
+  if (allCorrect && anyFilled) completeStage1();
+}
+
+function revealWord() {
+  if (!activeWord) return;
+  const wc = wordCells(activeWord);
+  wc.forEach(({r, c}, i) => {
+    const inp = getInput(r, c);
+    if (inp) {
+      inp.value = activeWord.word[i];
+      inp.style.color = '#9b8bb4';
+    }
+  });
+  checkCompletion();
+}
+
+function revealAll() {
+  for (const [key, letter] of Object.entries(GRID)) {
+    const [r, c] = key.split(',').map(Number);
+    const inp = getInput(r, c);
+    if (inp) {
+      inp.value = letter;
+      if (!inp.style.color) inp.style.color = '#9b8bb4';
+    }
+  }
+  setTimeout(completeStage1, 500);
+}
+
+function checkCompletion() {
+  for (const [key, letter] of Object.entries(GRID)) {
+    const [r, c] = key.split(',').map(Number);
+    const inp = getInput(r, c);
+    if (!inp || inp.value.toUpperCase() !== letter) return;
+  }
+  setTimeout(completeStage1, 300);
+}
+
+// ── Stage Transitions ───────────────────────────────────
+function completeStage1() {
+  currentStage = 'transition';
+  document.getElementById('stage1').classList.remove('active');
+  document.getElementById('stageTransition').classList.add('active');
+}
+
+function startStage2() {
+  currentStage = 2;
+  document.getElementById('stageTransition').classList.remove('active');
+  document.getElementById('stage2').classList.add('active');
+  initRoombaGame();
+}
+
+function completeStage2() {
+  currentStage = 'transition2';
+  if (gameLoopId) cancelAnimationFrame(gameLoopId);
+  document.exitPointerLock && document.exitPointerLock();
+  document.getElementById('stage2').classList.remove('active');
+  document.getElementById('stage2Transition').classList.add('active');
+}
+
+function startStage3() {
+  currentStage = 3;
+  document.getElementById('stage2Transition').classList.remove('active');
+  document.getElementById('stage3').classList.add('active');
+  initCookingGame();
+}
+
+let cookingLoopId = null;
+
+function completeStage3() {
+  currentStage = 'transition3';
+  if (cookingLoopId) cancelAnimationFrame(cookingLoopId);
+  document.getElementById('stage3').classList.remove('active');
+  document.getElementById('stage3Transition').classList.add('active');
+}
+
+function startCelebration() {
+  document.getElementById('stage3Transition').classList.remove('active');
+  currentStage = 'final';
+  showCelebration();
+}
+
+// ── Celebration ─────────────────────────────────────────
+function showCelebration() {
+  const el = document.getElementById('celebration');
+  el.classList.add('show');
+  const container = document.getElementById('celebHearts');
+  for (let i = 0; i < 40; i++) {
+    setTimeout(() => {
+      const h = document.createElement('div');
+      h.className = 'celeb-heart';
+      h.textContent = ['❤', '💕', '💗', '💖', '✨'][Math.floor(Math.random() * 5)];
+      h.style.left = Math.random() * 100 + '%';
+      h.style.top = 40 + Math.random() * 60 + '%';
+      h.style.fontSize = (20 + Math.random() * 30) + 'px';
+      h.style.animationDuration = (2 + Math.random() * 2) + 's';
+      container.appendChild(h);
+      setTimeout(() => h.remove(), 4000);
+    }, i * 100);
+  }
+}
+
+// ── Skip button visibility (hold Shift) ─────────────────
+document.addEventListener('keydown', e => { if (e.key === 'Shift') document.body.classList.add('show-skip'); });
+document.addEventListener('keyup', e => { if (e.key === 'Shift') document.body.classList.remove('show-skip'); });
+
+// ── Floating hearts background ──────────────────────────
+const bg = document.getElementById('heartsBg');
+function spawnBgHeart() {
+  const h = document.createElement('div');
+  h.className = 'fh';
+  h.textContent = ['\u2764', '\u2665', '\u2661'][Math.floor(Math.random() * 3)];
+  h.style.left = Math.random() * 100 + '%';
+  h.style.fontSize = (14 + Math.random() * 20) + 'px';
+  h.style.animationDuration = (10 + Math.random() * 15) + 's';
+  bg.appendChild(h);
+  setTimeout(() => h.remove(), 25000);
+}
+setInterval(spawnBgHeart, 1200);
+for (let i = 0; i < 8; i++) setTimeout(spawnBgHeart, i * 400);
+
+// ══════════════════════════════════════════════════════════
+// ── STAGE 2: ROOMBA RAYCASTER ────────────────────────────
+// ══════════════════════════════════════════════════════════
+
+let gameLoopId = null;
+
+function initRoombaGame() {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const miniCanvas = document.getElementById('minimapCanvas');
+  const miniCtx = miniCanvas.getContext('2d');
+  const W = 640, H = 480;
+  canvas.width = W; canvas.height = H;
+
+  // ── House Map (16x16) ──
+  // 0=floor, 1=outer wall, 2=kitchen wall, 3=furniture
+  const MAP_W = 16, MAP_H = 16;
+  const MAP = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,3,0,0,0,0,0,0,0,0,3,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,2,2,0,2,2,2,2,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,3,0,0,0,0,0,0,0,0,0,3,0,1],
+    [1,0,0,0,0,0,0,0,2,0,0,0,0,0,0,1],
+    [1,1,1,0,0,1,1,1,1,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,1,0,0,3,0,0,0,1],
+    [1,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1],
+    [1,0,3,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,3,0,0,0,0,0,0,3,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  ];
+
+  // Wall colors by type: [light side, dark side]
+  const WALL_COLORS = {
+    1: ['#d4a574', '#b8895e'], // outer walls - beige
+    2: ['#7ca6d4', '#6088b4'], // kitchen walls - blue
+    3: ['#a07050', '#845a3e'], // furniture - brown
+  };
+
+  // ── Floor Cleaning State ──
+  const totalFloor = [];
+  const cleaned = Array.from({length: MAP_H}, () => Array(MAP_W).fill(false));
+  let cleanedCount = 0, totalFloorCount = 0;
+  for (let y = 0; y < MAP_H; y++)
+    for (let x = 0; x < MAP_W; x++)
+      if (MAP[y][x] === 0) { totalFloor.push({x, y}); totalFloorCount++; }
+
+  // ── Player (Roomba) ──
+  let px = 1.5, py = 1.5, pa = 0; // position x, y, angle
+  const MOVE_SPEED = 2.8, ROT_SPEED = 2.0, MOUSE_SENS = 0.002;
+  const COLLISION_R = 0.25;
+
+  // ── Sprites (obstacles) ──
+  const SPRITE_DEFS = [
+    {emoji: '💩', x: 4.5,  y: 3.5,  msg: "Eww! Pecky strikes again!"},
+    {emoji: '💩', x: 10.5, y: 6.5,  msg: "Classic Pecky..."},
+    {emoji: '💩', x: 6.5,  y: 13.5, msg: "Pecky! Bad dog!"},
+    {emoji: '🏀', x: 2.5,  y: 7.5,  msg: "Victor's basketball!"},
+    {emoji: '🏀', x: 12.5, y: 2.5,  msg: "Another basketball?!"},
+    {emoji: '👟', x: 6.5,  y: 1.5,  msg: "Somebody left their shoes out!"},
+    {emoji: '👟', x: 13.5, y: 10.5, msg: "Shoes everywhere!"},
+    {emoji: '🧸', x: 3.5,  y: 12.5, msg: "Audrey's teddy bear!"},
+    {emoji: '🧸', x: 10.5, y: 13.5, msg: "Careful, that's Quinn's!"},
+    {emoji: '🦴', x: 8.5,  y: 4.5,  msg: "Pecky's bone... gross!"},
+    {emoji: '🦴', x: 2.5,  y: 10.5, msg: "Another bone from Pecky!"},
+    {emoji: '🩴', x: 11.5, y: 1.5,  msg: "Summer's flip flops!"},
+  ];
+  const spriteHit = new Set(); // indices of sprites already hit
+
+  // Docking station
+  const DOCK = {x: 14.5, y: 14.5, emoji: '🔋'};
+  let dockReady = false;
+  let dockingComplete = false;
+
+  // Wall colors as RGB for ImageData rendering
+  const WALL_COLORS_RGB = {
+    1: {light: [212, 165, 116], dark: [184, 137, 94]},
+    2: {light: [124, 166, 212], dark: [96, 136, 180]},
+    3: {light: [160, 112, 80], dark: [132, 90, 62]},
+  };
+
+  // Pre-render emoji to offscreen canvases
+  const SPRITE_SIZE = 64;
+  const spriteTextures = {};
+  function renderEmojiTexture(emoji) {
+    if (spriteTextures[emoji]) return spriteTextures[emoji];
+    const c = document.createElement('canvas');
+    c.width = SPRITE_SIZE; c.height = SPRITE_SIZE;
+    const cx = c.getContext('2d');
+    cx.font = `${SPRITE_SIZE - 8}px serif`;
+    cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText(emoji, SPRITE_SIZE / 2, SPRITE_SIZE / 2 + 4);
+    spriteTextures[emoji] = c;
+    return c;
+  }
+  SPRITE_DEFS.forEach(s => renderEmojiTexture(s.emoji));
+  renderEmojiTexture(DOCK.emoji);
+
+  // ── Z-Buffer ──
+  const zBuffer = new Float64Array(W);
+
+  // ── Input State ──
+  const keys = {};
+  let mouseLocked = false;
+
+  function onKeyDown(e) {
+    if (currentStage !== 2) return;
+    if (['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key.toLowerCase ? e.key.toLowerCase() : e.key)) {
+      e.preventDefault();
+      keys[e.key.toLowerCase()] = true;
+    }
+  }
+  function onKeyUp(e) {
+    keys[e.key.toLowerCase()] = false;
+  }
+  document.addEventListener('keydown', onKeyDown);
+  document.addEventListener('keyup', onKeyUp);
+
+  canvas.addEventListener('click', () => {
+    if (currentStage !== 2) return;
+    canvas.requestPointerLock();
+  });
+  document.addEventListener('pointerlockchange', () => {
+    mouseLocked = document.pointerLockElement === canvas;
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!mouseLocked || currentStage !== 2) return;
+    pa += e.movementX * MOUSE_SENS;
+  });
+
+  // ── Collision Detection ──
+  function canMove(nx, ny) {
+    const r = COLLISION_R;
+    // Check corners of bounding box
+    for (let dx = -1; dx <= 1; dx += 2) {
+      for (let dy = -1; dy <= 1; dy += 2) {
+        const cx = Math.floor(nx + dx * r);
+        const cy = Math.floor(ny + dy * r);
+        if (cx < 0 || cx >= MAP_W || cy < 0 || cy >= MAP_H) return false;
+        if (MAP[cy][cx] !== 0) return false;
+      }
+    }
+    return true;
+  }
+
+  // ── HUD Message ──
+  let msgTimer = null;
+  function showMessage(text) {
+    const el = document.getElementById('hudMessage');
+    el.textContent = text;
+    el.classList.add('show');
+    clearTimeout(msgTimer);
+    msgTimer = setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  function flashScreen(color) {
+    const fx = document.getElementById('screenFx');
+    fx.style.background = color;
+    fx.classList.add('flash');
+    setTimeout(() => fx.classList.remove('flash'), 200);
+  }
+
+  // ── Raycaster Rendering (ImageData for per-pixel floor casting) ──
+  const frameData = ctx.createImageData(W, H);
+  const frameBuf = frameData.data;
+
+  function castRays() {
+    const FOV = Math.PI / 3;
+    const halfH = H / 2;
+
+    // Fill ceiling (rows 0..halfH)
+    for (let row = 0; row <= halfH; row++) {
+      for (let col = 0; col < W; col++) {
+        const idx = (row * W + col) * 4;
+        frameBuf[idx] = 68; frameBuf[idx+1] = 68; frameBuf[idx+2] = 85; frameBuf[idx+3] = 255;
+      }
+    }
+
+    for (let col = 0; col < W; col++) {
+      const rayAngle = pa - FOV / 2 + (col / W) * FOV;
+      const rdx = Math.cos(rayAngle);
+      const rdy = Math.sin(rayAngle);
+
+      // DDA setup
+      let mapX = Math.floor(px), mapY = Math.floor(py);
+      const deltaDistX = Math.abs(1 / rdx);
+      const deltaDistY = Math.abs(1 / rdy);
+      let stepX, stepY, sideDistX, sideDistY;
+
+      if (rdx < 0) { stepX = -1; sideDistX = (px - mapX) * deltaDistX; }
+      else { stepX = 1; sideDistX = (mapX + 1 - px) * deltaDistX; }
+      if (rdy < 0) { stepY = -1; sideDistY = (py - mapY) * deltaDistY; }
+      else { stepY = 1; sideDistY = (mapY + 1 - py) * deltaDistY; }
+
+      // DDA march
+      let hit = 0, side = 0;
+      while (!hit) {
+        if (sideDistX < sideDistY) {
+          sideDistX += deltaDistX; mapX += stepX; side = 0;
+        } else {
+          sideDistY += deltaDistY; mapY += stepY; side = 1;
+        }
+        if (mapX < 0 || mapX >= MAP_W || mapY < 0 || mapY >= MAP_H) { hit = 1; break; }
+        if (MAP[mapY][mapX] > 0) hit = MAP[mapY][mapX];
+      }
+
+      // Perpendicular distance (fish-eye correction)
+      let perpDist;
+      if (side === 0) perpDist = sideDistX - deltaDistX;
+      else perpDist = sideDistY - deltaDistY;
+      if (perpDist < 0.01) perpDist = 0.01;
+
+      zBuffer[col] = perpDist;
+
+      // Wall into ImageData
+      const lineHeight = Math.floor(H / perpDist);
+      let drawStart = Math.floor(halfH - lineHeight / 2);
+      let drawEnd = drawStart + lineHeight;
+      const clampStart = Math.max(0, drawStart);
+      const clampEnd = Math.min(H, drawEnd);
+
+      const wc = WALL_COLORS_RGB[hit] || WALL_COLORS_RGB[1];
+      const rgb = side === 1 ? wc.dark : wc.light;
+      for (let row = clampStart; row < clampEnd; row++) {
+        const idx = (row * W + col) * 4;
+        frameBuf[idx] = rgb[0]; frameBuf[idx+1] = rgb[1]; frameBuf[idx+2] = rgb[2]; frameBuf[idx+3] = 255;
+      }
+
+      // Per-pixel floor casting
+      const cosCorrect = Math.cos(rayAngle - pa);
+      const floorStart = Math.max(clampEnd, Math.floor(halfH) + 1);
+      for (let row = floorStart; row < H; row++) {
+        const rowDist = halfH / (row - halfH);
+        const actualDist = rowDist / cosCorrect;
+        const floorX = px + actualDist * rdx;
+        const floorY = py + actualDist * rdy;
+        const tileX = Math.floor(floorX);
+        const tileY = Math.floor(floorY);
+
+        let r, g, b;
+        if (tileX >= 0 && tileX < MAP_W && tileY >= 0 && tileY < MAP_H &&
+            MAP[tileY][tileX] === 0 && cleaned[tileY][tileX]) {
+          // Clean hardwood floor
+          r = 210; g = 190; b = 160;
+        } else {
+          // Dirty: golden-brown "hair" texture
+          const hash = (tileX * 7 + tileY * 13 + row) % 3;
+          if (hash === 0) { r = 185; g = 145; b = 80; }
+          else if (hash === 1) { r = 170; g = 130; b = 65; }
+          else { r = 195; g = 155; b = 90; }
+        }
+
+        // Distance fog
+        const fog = Math.min(1, rowDist / 14);
+        r = Math.floor(r * (1 - fog) + 50 * fog);
+        g = Math.floor(g * (1 - fog) + 45 * fog);
+        b = Math.floor(b * (1 - fog) + 55 * fog);
+
+        const idx = (row * W + col) * 4;
+        frameBuf[idx] = r; frameBuf[idx+1] = g; frameBuf[idx+2] = b; frameBuf[idx+3] = 255;
+      }
+    }
+
+    ctx.putImageData(frameData, 0, 0);
+  }
+
+  // ── Sprite Rendering (includes dock sprite) ──
+  function renderSprites() {
+    const FOV = Math.PI / 3;
+    const halfFovTan = Math.tan(FOV / 2);
+    const now = performance.now();
+
+    // Build combined sprite list: items + dock
+    const allSprites = SPRITE_DEFS.map((s, i) => ({x: s.x, y: s.y, emoji: s.emoji, type: 'item'}));
+    allSprites.push({x: DOCK.x, y: DOCK.y, emoji: DOCK.emoji, type: 'dock'});
+
+    // Sort by distance (far to near)
+    const sorted = allSprites.map((s, i) => {
+      const dx = s.x - px, dy = s.y - py;
+      return {i, dist: dx * dx + dy * dy};
+    }).sort((a, b) => b.dist - a.dist);
+
+    const cosA = Math.cos(pa), sinA = Math.sin(pa);
+
+    for (const {i} of sorted) {
+      const s = allSprites[i];
+      const dx = s.x - px, dy = s.y - py;
+
+      const tx = cosA * dx + sinA * dy;  // depth
+      const ty = -sinA * dx + cosA * dy; // horizontal offset
+
+      if (tx <= 0.1) continue; // behind camera
+
+      const spriteScreenX = Math.floor(W / 2 + (ty / tx) * (W / (2 * halfFovTan)));
+      let spriteH = Math.floor(H / tx * 0.7);
+
+      // Dock pulsing when ready
+      if (s.type === 'dock' && dockReady) {
+        const pulse = 1 + 0.2 * Math.sin(now / 200);
+        spriteH = Math.floor(spriteH * pulse);
+      }
+
+      const spriteW = spriteH;
+      const drawStartX = Math.floor(spriteScreenX - spriteW / 2);
+      const drawStartY = Math.floor(H / 2 - spriteH / 2);
+
+      const tex = spriteTextures[s.emoji];
+      if (!tex) continue;
+
+      // Draw column by column with z-buffer check
+      for (let stripe = Math.max(0, drawStartX); stripe < Math.min(W, drawStartX + spriteW); stripe++) {
+        if (tx < zBuffer[stripe]) {
+          const texX = Math.floor((stripe - drawStartX) / spriteW * SPRITE_SIZE);
+          ctx.drawImage(tex, texX, 0, 1, SPRITE_SIZE,
+                        stripe, Math.max(0, drawStartY), 1, Math.min(H - 1, drawStartY + spriteH) - Math.max(0, drawStartY));
+        }
+      }
+    }
+  }
+
+  // ── Minimap ──
+  const MINI_CELL = 8;
+  miniCanvas.width = MAP_W * MINI_CELL;
+  miniCanvas.height = MAP_H * MINI_CELL;
+
+  function drawMinimap() {
+    miniCtx.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        if (MAP[y][x] > 0) {
+          miniCtx.fillStyle = MAP[y][x] === 1 ? '#665544' : MAP[y][x] === 2 ? '#5577aa' : '#7a5a3a';
+        } else if (cleaned[y][x]) {
+          miniCtx.fillStyle = '#d4c4a0'; // clean hardwood
+        } else {
+          miniCtx.fillStyle = '#b89960'; // dirty golden
+        }
+        miniCtx.fillRect(x * MINI_CELL, y * MINI_CELL, MINI_CELL, MINI_CELL);
+      }
+    }
+    // Docking station marker
+    const dockMX = Math.floor(DOCK.x) * MINI_CELL;
+    const dockMY = Math.floor(DOCK.y) * MINI_CELL;
+    if (dockReady) {
+      const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 300);
+      miniCtx.fillStyle = `rgba(0, 220, 0, ${(0.5 + pulse * 0.5).toFixed(2)})`;
+      miniCtx.fillRect(dockMX, dockMY, MINI_CELL, MINI_CELL);
+    } else {
+      miniCtx.fillStyle = '#44aa44';
+      miniCtx.fillRect(dockMX + 1, dockMY + 1, MINI_CELL - 2, MINI_CELL - 2);
+    }
+    // Player dot
+    miniCtx.fillStyle = '#ff6b8a';
+    miniCtx.beginPath();
+    const mpx = px * MINI_CELL, mpy = py * MINI_CELL;
+    miniCtx.arc(mpx, mpy, 3, 0, Math.PI * 2);
+    miniCtx.fill();
+    // Direction line
+    miniCtx.strokeStyle = '#ff6b8a';
+    miniCtx.lineWidth = 1.5;
+    miniCtx.beginPath();
+    miniCtx.moveTo(mpx, mpy);
+    miniCtx.lineTo(mpx + Math.cos(pa) * 8, mpy + Math.sin(pa) * 8);
+    miniCtx.stroke();
+  }
+
+  // ── Update Progress ──
+  function updateHUD() {
+    const pct = Math.floor((cleanedCount / totalFloorCount) * 100);
+    document.getElementById('cleanPercent').textContent = pct;
+    document.getElementById('progressFill').style.width = pct + '%';
+  }
+
+  // ── Game Loop ──
+  let lastTime = 0;
+
+  function gameLoop(timestamp) {
+    if (currentStage !== 2) return;
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+    lastTime = timestamp;
+
+    // Movement
+    let moveX = 0, moveY = 0;
+    const cosA = Math.cos(pa), sinA = Math.sin(pa);
+    const speed = MOVE_SPEED * dt;
+
+    if (keys['w'] || keys['arrowup'])    { moveX += cosA * speed; moveY += sinA * speed; }
+    if (keys['s'] || keys['arrowdown'])  { moveX -= cosA * speed; moveY -= sinA * speed; }
+    if (keys['a'])  { moveX += sinA * speed; moveY -= cosA * speed; }
+    if (keys['d']) { moveX -= sinA * speed; moveY += cosA * speed; }
+
+    // Arrow keys rotate when mouse not locked
+    if (keys['arrowleft'])  pa -= ROT_SPEED * dt;
+    if (keys['arrowright']) pa += ROT_SPEED * dt;
+
+    // Apply movement with collision
+    if (moveX !== 0 || moveY !== 0) {
+      if (canMove(px + moveX, py)) px += moveX;
+      if (canMove(px, py + moveY)) py += moveY;
+    }
+
+    // Floor cleaning
+    const tileX = Math.floor(px), tileY = Math.floor(py);
+    if (tileX >= 0 && tileX < MAP_W && tileY >= 0 && tileY < MAP_H &&
+        MAP[tileY][tileX] === 0 && !cleaned[tileY][tileX]) {
+      cleaned[tileY][tileX] = true;
+      cleanedCount++;
+      updateHUD();
+      if (!dockReady && cleanedCount / totalFloorCount >= 0.9) {
+        dockReady = true;
+        showMessage("Nice work! Head back to the docking station! 🔋");
+        const pct = Math.floor((cleanedCount / totalFloorCount) * 100);
+        document.querySelector('.hud-progress-label').innerHTML =
+          'Return to dock! <span id="cleanPercent">' + pct + '</span>%';
+      }
+    }
+
+    // Dock collision check
+    if (dockReady && !dockingComplete) {
+      const dockDx = px - DOCK.x, dockDy = py - DOCK.y;
+      if (dockDx * dockDx + dockDy * dockDy < 0.8) {
+        dockingComplete = true;
+        showMessage("DOCKED! Great job! 🎉");
+        flashScreen('rgba(0, 200, 0, 0.4)');
+        setTimeout(completeStage2, 1000);
+      }
+    }
+
+    // Sprite collision check
+    for (let i = 0; i < SPRITE_DEFS.length; i++) {
+      if (spriteHit.has(i)) continue;
+      const s = SPRITE_DEFS[i];
+      const dx = px - s.x, dy = py - s.y;
+      if (dx * dx + dy * dy < 0.6) {
+        spriteHit.add(i);
+        showMessage(s.msg);
+        flashScreen('rgba(139, 69, 19, 0.3)');
+      }
+    }
+
+    // Render
+    castRays();
+    renderSprites();
+    drawMinimap();
+
+    gameLoopId = requestAnimationFrame(gameLoop);
+  }
+
+  // Start!
+  updateHUD();
+  // Mark starting tile as clean
+  cleaned[Math.floor(py)][Math.floor(px)] = true;
+  cleanedCount++;
+  updateHUD();
+  lastTime = performance.now();
+  gameLoopId = requestAnimationFrame(gameLoop);
+}
+
+// ══════════════════════════════════════════════════════════
+// ── STAGE 3: WHAT'S FOR DINNER? ──────────────────────────
+// ══════════════════════════════════════════════════════════
+
+function initCookingGame() {
+  const canvas = document.getElementById('cookingCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = 640, H = 520;
+  canvas.width = W; canvas.height = H;
+
+  // ── Family Members & Orders ──
+  const MEMBERS = [
+    { name: 'Quinn', emoji: '👧', meal: 'Pizza', mealEmoji: '🍕',
+      ingredients: ['🧀', '🍅', '🍄'], needed: 5, collected: 0,
+      color: '#ff9eb5', doneMsg: "Quinn's pizza is ready! 🍕" },
+    { name: 'Audrey', emoji: '👶', meal: 'Pad See Ew', mealEmoji: '🍜',
+      ingredients: ['🥕', '🥚', '🧄'], needed: 5, collected: 0,
+      color: '#9eb5ff', doneMsg: "Audrey's pad see ew — her favorite! 🍜" },
+    { name: 'Todd', emoji: '🧔', meal: 'Burger', mealEmoji: '🍔',
+      ingredients: ['🥩', '🥬', '🧅'], needed: 5, collected: 0,
+      color: '#b5ff9e', doneMsg: "Todd's burger is ready! 🍔" },
+    { name: 'Sprite', emoji: '👩', meal: 'Papaya Salad', mealEmoji: '🥗',
+      ingredients: ['🍋', '🌶️', '🥒'], needed: 5, collected: 0,
+      color: '#ffe49e', doneMsg: "Sprite's papaya salad is perfect! 🥗" },
+  ];
+
+  const BAD_ITEMS = [
+    { emoji: '💩', msg: "Pecky! Get out of the kitchen!" },
+    { emoji: '🦴', msg: "That's not an ingredient, Pecky!" },
+    { emoji: '🏀', msg: "Victor! No basketball in the kitchen!" },
+    { emoji: '🐾', msg: "Summer's fur... not a topping!" },
+  ];
+
+  // ── Layout Constants ──
+  const COL_W = W / 4;
+  const HEADER_H = 88;
+  const PAN_Y = H - 50;
+
+  // ── Game State ──
+  let panCol = 1;
+  let panX = COL_W * panCol + COL_W / 2;
+  let items = [];
+  let catchAnims = [];
+  let spawnTimer = 0;
+  let gameTime = 0;
+  let stunTimer = 0;
+  let gameWon = false;
+  let msgText = '';
+  let msgTimer = 0;
+  let lastTime = performance.now();
+
+  // ── Input ──
+  function onCookingKey(e) {
+    if (currentStage !== 3 || gameWon) return;
+    if (stunTimer > 0) return;
+    const k = e.key.toLowerCase();
+    if (k === 'a' || k === 'arrowleft') {
+      e.preventDefault();
+      if (panCol > 0) panCol--;
+    } else if (k === 'd' || k === 'arrowright') {
+      e.preventDefault();
+      if (panCol < 3) panCol++;
+    }
+  }
+  document.addEventListener('keydown', onCookingKey);
+
+  function showMsg(text) { msgText = text; msgTimer = 2.0; }
+
+  function flashCooking(color) {
+    const fx = document.getElementById('cookingFx');
+    fx.style.background = color;
+    fx.classList.add('flash');
+    setTimeout(() => fx.classList.remove('flash'), 200);
+  }
+
+  // ── Spawning ──
+  function spawnItem() {
+    const baseSpeed = 100 + Math.min(gameTime * 3.5, 130);
+    if (Math.random() < 0.2) {
+      const col = Math.floor(Math.random() * 4);
+      const bad = BAD_ITEMS[Math.floor(Math.random() * BAD_ITEMS.length)];
+      items.push({
+        x: COL_W * col + COL_W / 2, y: HEADER_H - 20,
+        emoji: bad.emoji, col, type: 'bad', msg: bad.msg,
+        speed: baseSpeed, wobble: Math.random() * 6.28, handled: false,
+      });
+    } else {
+      const incomplete = [];
+      MEMBERS.forEach((m, i) => { if (m.collected < m.needed) incomplete.push(i); });
+      if (incomplete.length === 0) return;
+      const mi = incomplete[Math.floor(Math.random() * incomplete.length)];
+      const m = MEMBERS[mi];
+      const ing = m.ingredients[Math.floor(Math.random() * m.ingredients.length)];
+      items.push({
+        x: COL_W * mi + COL_W / 2, y: HEADER_H - 20,
+        emoji: ing, col: mi, type: 'good', memberIdx: mi,
+        speed: baseSpeed, wobble: Math.random() * 6.28, handled: false,
+      });
+    }
+  }
+
+  // ── Game Loop ──
+  function cookingLoop(timestamp) {
+    if (currentStage !== 3) return;
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+    lastTime = timestamp;
+    gameTime += dt;
+    if (stunTimer > 0) stunTimer -= dt;
+    if (msgTimer > 0) msgTimer -= dt;
+
+    // Smooth pan movement
+    const targetX = COL_W * panCol + COL_W / 2;
+    panX += (targetX - panX) * 14 * dt;
+
+    // Spawn items
+    spawnTimer -= dt;
+    if (!gameWon && spawnTimer <= 0) {
+      spawnItem();
+      if (gameTime > 20 && Math.random() < 0.3) spawnItem();
+      spawnTimer = Math.max(0.45, 1.0 - gameTime * 0.01);
+    }
+
+    // Update items
+    for (let i = items.length - 1; i >= 0; i--) {
+      const item = items[i];
+      item.y += item.speed * dt;
+      item.wobble += dt * 3;
+      // Catch detection
+      if (!item.handled && item.y >= PAN_Y - 22 && item.y <= PAN_Y + 12) {
+        if (item.col === panCol && stunTimer <= 0) {
+          item.handled = true;
+          if (item.type === 'bad') {
+            stunTimer = 0.8;
+            showMsg(item.msg);
+            flashCooking('rgba(139, 69, 19, 0.3)');
+          } else {
+            const m = MEMBERS[item.memberIdx];
+            if (m.collected < m.needed) {
+              m.collected++;
+              catchAnims.push({
+                x: item.x, y: item.y, emoji: item.emoji,
+                tx: COL_W * item.memberIdx + COL_W / 2, ty: 72, t: 0,
+              });
+              if (m.collected >= m.needed) {
+                showMsg(m.doneMsg);
+                flashCooking('rgba(0, 200, 100, 0.15)');
+              }
+            }
+          }
+          items.splice(i, 1);
+          continue;
+        }
+      }
+      if (item.y > H + 40) items.splice(i, 1);
+    }
+
+    // Catch animations
+    catchAnims.forEach(a => { a.t += dt * 3; });
+    catchAnims = catchAnims.filter(a => a.t < 1);
+
+    // Win check
+    if (!gameWon && MEMBERS.every(m => m.collected >= m.needed)) {
+      gameWon = true;
+      showMsg("Dinner is served! 🎉");
+      flashCooking('rgba(255, 215, 0, 0.3)');
+      setTimeout(completeStage3, 2500);
+    }
+
+    render();
+    cookingLoopId = requestAnimationFrame(cookingLoop);
+  }
+
+  // ── Rendering ──
+  function render() {
+    // Background
+    ctx.fillStyle = '#1a0a2e';
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle column backgrounds
+    for (let i = 0; i < 4; i++) {
+      if (MEMBERS[i].collected >= MEMBERS[i].needed) {
+        ctx.fillStyle = 'rgba(74, 222, 128, 0.04)';
+      } else if (i % 2 === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.015)';
+      } else {
+        ctx.fillStyle = 'transparent';
+      }
+      ctx.fillRect(i * COL_W, 0, COL_W, H);
+    }
+
+    // Column dividers
+    ctx.strokeStyle = 'rgba(255,107,138,0.12)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * COL_W, HEADER_H);
+      ctx.lineTo(i * COL_W, H);
+      ctx.stroke();
+    }
+
+    // Headers
+    ctx.textAlign = 'center';
+    for (let i = 0; i < 4; i++) {
+      const m = MEMBERS[i];
+      const cx = i * COL_W + COL_W / 2;
+      const done = m.collected >= m.needed;
+
+      // Avatar
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '24px serif';
+      ctx.fillText(m.emoji, cx, 26);
+
+      // Name
+      ctx.font = '600 12px Inter, sans-serif';
+      ctx.fillStyle = done ? '#4ade80' : m.color;
+      ctx.fillText(m.name, cx, 43);
+
+      // Meal label
+      ctx.font = '10px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(255,200,215,0.45)';
+      ctx.fillText(m.mealEmoji + ' ' + m.meal, cx, 56);
+
+      // Progress bar
+      const bw = COL_W - 28, bx = cx - bw / 2, by = 64, bh = 8;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 4); ctx.fill();
+      const fw = (m.collected / m.needed) * bw;
+      if (fw > 0) {
+        ctx.fillStyle = done ? '#4ade80' : m.color;
+        ctx.beginPath(); ctx.roundRect(bx, by, Math.min(fw, bw), bh, 4); ctx.fill();
+      }
+      if (done) { ctx.font = '12px serif'; ctx.fillText('✅', cx + bw / 2 + 9, by + 9); }
+
+      // Header separator line
+      ctx.fillStyle = 'rgba(255,107,138,0.15)';
+      ctx.fillRect(i * COL_W, HEADER_H - 1, COL_W, 1);
+    }
+
+    // Falling items
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.font = '30px serif';
+    for (const item of items) {
+      ctx.fillText(item.emoji, item.x + Math.sin(item.wobble) * 4, item.y);
+    }
+
+    // Catch animations (ingredient flies to progress bar)
+    for (const a of catchAnims) {
+      const t = a.t;
+      ctx.globalAlpha = 1 - t;
+      ctx.font = `${Math.floor(26 - 14 * t)}px serif`;
+      ctx.fillText(a.emoji, a.x + (a.tx - a.x) * t, a.y + (a.ty - a.y) * t * t);
+      ctx.globalAlpha = 1;
+    }
+
+    // Pan
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.font = stunTimer > 0 ? '34px serif' : '40px serif';
+    if (stunTimer > 0 && Math.floor(stunTimer * 10) % 2 === 0) ctx.globalAlpha = 0.4;
+    ctx.fillText('🍳', panX, PAN_Y);
+    ctx.globalAlpha = 1;
+
+    // Pan column highlight
+    ctx.fillStyle = 'rgba(255,107,138,0.06)';
+    ctx.fillRect(panCol * COL_W, PAN_Y - 30, COL_W, 40);
+
+    // Message overlay
+    if (msgTimer > 0) {
+      ctx.globalAlpha = Math.min(1, msgTimer * 2);
+      ctx.font = '600 18px Inter, sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0,0,0,0.9)';
+      ctx.shadowBlur = 8;
+      ctx.fillText(msgText, W / 2, H * 0.45);
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ── Start! ──
+  showMsg("Cook dinner for the family! 🍳");
+  lastTime = performance.now();
+  cookingLoopId = requestAnimationFrame(cookingLoop);
+}
+</script>
+
+</body>
+</html>
